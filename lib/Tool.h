@@ -2,6 +2,7 @@
 #define TOOL_H
 
 #include <math.h>
+#include <SDL.h>
 
 class Vector2f{
 public:
@@ -21,5 +22,8 @@ public:
 
     float x, y;
 };
+
+Vector2f getMouse();
+int ccw(Vector2f u, Vector2f v, Vector2f t);
 
 #endif // TOOL_H

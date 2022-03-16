@@ -1,21 +1,16 @@
 #include "Ball.h"
 
-void Ball::setInitialMousePos(Vector2f curMousePos){
+void Ball::setInitialMousePos(const Vector2f &curMousePos){
     initialMousePos = curMousePos;
 }
 
-void Ball::setVelocity(Vector2f curMousePos){
+void Ball::setVelocity(const Vector2f &curMousePos){
     initVelocity = initialMousePos.getDistance(curMousePos);
-    velocity = initVelocity/30;
+    velocity = initVelocity/20;
     initV = initialMousePos - curMousePos;
 }
 
-bool checkCollision(float _x, float _y){
-    if (_x < 0 || _x > 800 || _y < 0 || _y > 600) return 1;
-    return 0;
-}
-
-void Ball::updatePos(){
+void Ball::updatePos(Block &blocks){
     if (velocity <= 0){
         moving = false;
         return;
@@ -24,8 +19,8 @@ void Ball::updatePos(){
     float deltaX = (velocity/initVelocity)*initV.x;
     float deltaY = (velocity/initVelocity)*initV.y;
 
-    if (checkCollision(pos.x+deltaX, pos.y)) initV.x *= -1, deltaX *= -1;
-    if (checkCollision(pos.x, pos.y+deltaY)) initV.y *= -1, deltaY *= -1;
+    if (blocks.checkCollision({pos.x+deltaX, pos.y})) initV.x *= -1, deltaX *= -1;
+    if (blocks.checkCollision({pos.x, pos.y+deltaY})) initV.y *= -1, deltaY *= -1;
     pos.x += deltaX;
     pos.y += deltaY;
 
@@ -41,7 +36,8 @@ void Ball::updatePos(){
     velocity -= inertia;
 }
 
-bool Ball::update(bool mousePressed, bool mouseDown, Hole &golfHole){
+bool Ball::update(bool mousePressed, bool mouseDown,
+                  Hole &golfHole, Block &blocks){
     if (win){
         //cout << "Win!";
         return true;
@@ -59,12 +55,12 @@ bool Ball::update(bool mousePressed, bool mouseDown, Hole &golfHole){
     if (mouseDown && !moving){
         setVelocity(curMousePos);
     } else {
-        updatePos();
+        updatePos(blocks);
     }
     return false;
 }
 
-void Ball::init(Vector2f initPos){
+void Ball::init(const Vector2f &initPos){
     setPos(initPos.x, initPos.y);
     velocity = 0;
     initVelocity = 1;
