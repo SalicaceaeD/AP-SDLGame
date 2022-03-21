@@ -4,63 +4,60 @@ Entity levelMap;
 Ball golfBall;
 Hole hole;
 Block blocks;
-Button xButton('x');
+Button menuButton('m');
 void gamePlay(SDL_Renderer *renderer, SDL_Event &event){
     golfBall.initTexture(renderer);
     hole.initTexture(renderer);
+    menuButton.initTexture(renderer);
+    menuButton.setPos(0, 0);
 
-    xButton.initTexture(renderer);
-    xButton.setPos(636, 0);
-
-    Button levelButton('l');
-    levelButton.initTexture(renderer);
-    levelButton.setCenter('w', 300);
-
+    LevelScreen::init(renderer);
+    int opt = 0;
     bool playing = true;
     while (playing){
-        SDL_RenderClear(renderer);
-        while (SDL_PollEvent(&event)){
-            switch (event.type){
-                case SDL_QUIT:{
-                    playing = false;
-                    break;
-                }
-                case SDL_MOUSEBUTTONDOWN:{
-                    int mouseX = 0, mouseY = 0;
-                    SDL_GetMouseState(&mouseX, &mouseY);
-                    Vector2f curMousePos(mouseX, mouseY);
-                    if (xButton.checkClick(curMousePos)){
+        if (opt < 0) playing = false;
+        if (opt > 0){
+            char pressed = runGame(renderer, event, opt);
+            if (pressed == 'N') ++opt;
+            else if (pressed != 'a') opt = 0;
+        }
+        if (opt == 0){
+            while (SDL_PollEvent(&event)){
+                switch (event.type){
+                    case SDL_QUIT:{
                         playing = false;
+                        break;
                     }
-                    if (levelButton.checkClick(curMousePos)){
-                        runGame(renderer, event, 1);
+                    case SDL_MOUSEBUTTONDOWN:{
+                        opt = LevelScreen::handle(renderer);
+                        break;
                     }
-                    break;
                 }
             }
+            LevelScreen::display(renderer);
         }
-        xButton.showTexture(renderer);
-        levelButton.showTexture(renderer);
-        SDL_RenderPresent(renderer);
     }
 
-    xButton.destroyTexture();
+    LevelScreen::destroy();
     golfBall.destroyTexture();
     hole.destroyTexture();
+    menuButton.destroyTexture();
 }
 
 bool gamerunning = true;
-void runGame(SDL_Renderer *renderer, SDL_Event &event, int level){
+char runGame(SDL_Renderer *renderer, SDL_Event &event, int level){
     loadLevel(renderer, level);
     gamerunning = true;
     while (gamerunning){
-        play(renderer, event);
+        loadGame(renderer, event, level);
     }
     levelMap.destroyTexture();
+    return loadWinningScreen(renderer, event);
+
 }
 
 bool mouseDown = false;
-void play(SDL_Renderer *renderer, SDL_Event &event){
+void loadGame(SDL_Renderer *renderer, SDL_Event &event, int level){
     bool mousePressed = false;
     while (SDL_PollEvent(&event)){
         switch (event.type){
@@ -70,13 +67,12 @@ void play(SDL_Renderer *renderer, SDL_Event &event){
             }
             case SDL_MOUSEBUTTONDOWN:{
                 Vector2f curMousePos = getMouse();
-                if (xButton.checkClick(curMousePos)){
-                    gamerunning = false;
+                if (menuButton.checkClick(curMousePos)){
+                    loadPauseScreen(renderer, event, level);
                 } else {
                     mouseDown = true;
                     mousePressed = true;
                 }
-
                 break;
             }
             case SDL_MOUSEBUTTONUP:{
@@ -86,15 +82,15 @@ void play(SDL_Renderer *renderer, SDL_Event &event){
         }
     }
     bool win = golfBall.update(mousePressed, mouseDown, hole, blocks);
+
     SDL_RenderClear(renderer);
     levelMap.showTexture(renderer);
-    //blocks.showBlock(renderer);
+    menuButton.showTexture(renderer);
     hole.showTexture(renderer);
-    xButton.showTexture(renderer);
+
     if (!win) golfBall.showTexture(renderer);
     SDL_RenderPresent(renderer);
     if (win){
-        SDL_Delay(1000);
         gamerunning = false;
     }
 }
@@ -121,4 +117,54 @@ void loadLevel(SDL_Renderer *renderer, int level){
     levelMap.initTexture(renderer);
     levelMap.setPos(0, 0);
     fclose(F);
+}
+
+void loadPauseScreen(SDL_Renderer *renderer, SDL_Event &event, int level){
+    PauseScreen::init(renderer);
+    PauseScreen::display(renderer);
+
+    bool pausing = true;
+    while (pausing){
+        while (SDL_PollEvent(&event)){
+            switch (event.type){
+                case SDL_QUIT:{
+                    pausing = false;
+                    break;
+                }
+                case SDL_MOUSEBUTTONDOWN:{
+                    char pressed = PauseScreen::handle();
+                    if (pressed != 'n') pausing = false; ///none
+                    if (pressed == 'a') loadLevel(renderer, level); ///again
+                    if (pressed == 'b') gamerunning = false; ///back
+                    break;
+                }
+            }
+        }
+    }
+    PauseScreen::destroy();
+}
+
+char loadWinningScreen(SDL_Renderer *renderer, SDL_Event &event){
+    WinningScreen::init(renderer);
+    WinningScreen::display(renderer);
+
+    char pressed;
+    bool displaying = true;
+    while (displaying){
+        while (SDL_PollEvent(&event)){
+            switch (event.type){
+                case SDL_QUIT:{
+                    displaying = false;
+                    break;
+                }
+                case SDL_MOUSEBUTTONDOWN:{
+                    pressed = WinningScreen::handle();
+                    if (pressed != 'n') displaying = false; ///none
+                    break;
+                }
+            }
+        }
+    }
+    WinningScreen::destroy();
+    return pressed;
 }

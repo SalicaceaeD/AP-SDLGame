@@ -1,5 +1,5 @@
 #include <iostream>
-#include <SDL.h>
+#include "SDL_utils.h"
 
 void logSDLError(std::ostream& os, const std::string &msg, bool fatal){
     os << msg << " Error: " << SDL_GetError() << std::endl;
@@ -43,4 +43,13 @@ void waitUntilKeyPressed(){
             return;
         SDL_Delay(100);
     }
+}
+
+void initLib(){
+	if (SDL_Init(SDL_INIT_VIDEO) > 0)
+		std::cout << "SDL could not initialize! SDL error: " << SDL_GetError() << "\n";
+	if (!(IMG_Init(IMG_INIT_PNG)))
+		std::cout << "SDL_image could not initialize! SDL_image error: " << SDL_GetError() << "\n";
+	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+		std::cout << "SDL_mixer could not initialize! SDL_mixer error: " << SDL_GetError() << "\n";
 }

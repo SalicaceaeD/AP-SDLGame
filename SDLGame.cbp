@@ -39,21 +39,23 @@
 		<Unit filename="lib/Ball.h" />
 		<Unit filename="lib/Block.h" />
 		<Unit filename="lib/Button.h" />
+		<Unit filename="lib/Display.h" />
 		<Unit filename="lib/Entity.h" />
 		<Unit filename="lib/GamePlay.h" />
 		<Unit filename="lib/Hole.h" />
 		<Unit filename="lib/SDL_utils.h" />
-		<Unit filename="lib/Text.h" />
+		<Unit filename="lib/Sound.h" />
 		<Unit filename="lib/Tool.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="src/Ball.cpp" />
 		<Unit filename="src/Block.cpp" />
 		<Unit filename="src/Button.cpp" />
+		<Unit filename="src/Display.cpp" />
 		<Unit filename="src/Entity.cpp" />
 		<Unit filename="src/GamePlay.cpp" />
 		<Unit filename="src/Hole.cpp" />
 		<Unit filename="src/SDL_utils.cpp" />
-		<Unit filename="src/Text.cpp" />
+		<Unit filename="src/Sound.cpp" />
 		<Unit filename="src/Tool.cpp" />
 		<Extensions>
 			<lib_finder disable_auto="1" />

@@ -1,6 +1,7 @@
 #ifndef TOOL_H
 #define TOOL_H
 
+#include <bits/stdc++.h>
 #include <math.h>
 #include <SDL.h>
 
@@ -23,6 +24,7 @@ public:
     float x, y;
 };
 
+#define pv2f pair<Vector2f,Vector2f>
 Vector2f getMouse();
 int ccw(Vector2f u, Vector2f v, Vector2f t);
 
