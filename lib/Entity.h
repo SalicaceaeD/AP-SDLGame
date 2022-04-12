@@ -3,7 +3,6 @@
 #include <iostream>
 #include <SDL.h>
 #include <SDL_image.h>
-//#include <SDL_ttf.h>
 
 #include "Tool.h"
 
@@ -12,22 +11,37 @@ using namespace std;
 class Entity{
 public:
     Entity() {};
-    ~Entity() {};
+    Entity(string _path) {path = _path;};
+    ~Entity();
     void setPos(float _x, float _y);
     void setCenter(char type, float val);
     Vector2f getPos();
-    bool checkClick(Vector2f mousePos);
+    Vector2f getSize();
+    bool checkMouseHovering();
 
-    void initTexture(SDL_Renderer *renderer);
-    //void initTexture(SDL_Renderer *renderer, TTF_Font *font, const char *textureText, SDL_Color textColor);
-    void showTexture(SDL_Renderer *renderer);
+    virtual void initTexture(SDL_Renderer *renderer);
+    virtual void showTexture(SDL_Renderer *renderer);
     void destroyTexture();
 
     string path = "";
 protected:
-    Vector2f pos;
+    Vector2f pos = {0, 0};
     SDL_Texture *texture;
     SDL_Rect rect;
+};
+
+class Button{
+public:
+    Button(){};
+    Button(int _x, int _y, int _sz)         { x = _x; y = _y; w = h = _sz; }
+    Button(int _x, int _y, int _w, int _h)  { x = _x; y = _y; w = _w; h = _h; }
+    bool checkClick(Vector2f mousePos){
+        return  (x <= mousePos.x && mousePos.x < x+w) &&
+                (y <= mousePos.y && mousePos.y < y+h);
+    }
+protected:
+    int x, y, w, h;
+private:
 };
 
 #endif // ENTITY_H

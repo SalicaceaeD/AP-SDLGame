@@ -32,6 +32,8 @@ void initSDL(SDL_Window* &window, SDL_Renderer* &renderer,
 void quitSDL(SDL_Window* window, SDL_Renderer* renderer){
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
+	IMG_Quit();
+	TTF_Quit();
 	SDL_Quit();
 }
 
@@ -52,4 +54,6 @@ void initLib(){
 		std::cout << "SDL_image could not initialize! SDL_image error: " << SDL_GetError() << "\n";
 	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
 		std::cout << "SDL_mixer could not initialize! SDL_mixer error: " << SDL_GetError() << "\n";
+    if (TTF_Init() == -1)
+        std::cout << "SDL_ttf could not initialize! SDL_ttf error: " << TTF_GetError() << "\n";
 }

@@ -1,3 +1,4 @@
+#define SDL_MAIN_HANDLED
 #include "SDL_utils.h"
 #include "GamePlay.h"
 #include "Display.h"
@@ -12,6 +13,30 @@ SDL_Window* window;
 SDL_Renderer* renderer;
 SDL_Event event;
 
+void optionDisplay(){
+    OptionScreen::init();
+    bool displaying = true;
+    while (displaying) {
+        while (SDL_PollEvent(&event)){
+            switch (event.type){
+                case SDL_QUIT:{
+                    quitSDL(window, renderer);
+                    exit(0);
+                    break;
+                }
+                case SDL_MOUSEBUTTONDOWN:{
+                    char pressed = OptionScreen::handle();
+                    if (pressed == 'b') displaying = false;
+                    if (pressed == 'r') OptionScreen::resetPage(window, renderer, event);
+                    break;
+                }
+            }
+        }
+        OptionScreen::display(renderer);
+    }
+    OptionScreen::destroy();
+}
+
 int main(int argc, char* argv[])
 {
     initLib();
@@ -21,27 +46,31 @@ int main(int argc, char* argv[])
     SDL_SetRenderDrawColor(renderer, (Uint8)0, (Uint8)0, (Uint8)0, (Uint8)128);
 
     initSound();
-    HomeScreen::init(renderer);
+    HomeScreen::init();
+    Background::init(renderer);
+
     bool running = true;
     while (running) {
         while (SDL_PollEvent(&event)){
             switch (event.type){
-            case SDL_QUIT:{
-                running = false;
-                break;
-            }
-            case SDL_MOUSEBUTTONDOWN:{
-                char pressed = HomeScreen::handle();
-                if (pressed == 'p'){
-                    HomeScreen::destroy();
-                    gamePlay(renderer, event);
-                    HomeScreen::build(renderer);
-                }
-                if (pressed == 'q'){
+                case SDL_QUIT:{
                     running = false;
+                    break;
                 }
-                break;
-            }
+                case SDL_MOUSEBUTTONDOWN:{
+                    char pressed = HomeScreen::handle();
+                    if (pressed == 'p'){
+                        HomeScreen::destroy();
+                        Background::destroy();
+
+                        gamePlay(window, renderer, event);
+                        //HomeScreen::init(renderer);
+                        Background::init(renderer);
+                    }
+                    if (pressed == 'q') running = false;
+                    if (pressed == 'o') optionDisplay();
+                    break;
+                }
             }
         }
         HomeScreen::display(renderer);
@@ -49,6 +78,7 @@ int main(int argc, char* argv[])
 
     quitSound();
     HomeScreen::destroy();
+    Background::destroy();
     quitSDL(window, renderer);
     return 0;
 }

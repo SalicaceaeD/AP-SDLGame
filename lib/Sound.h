@@ -27,11 +27,12 @@ public:
     void freeSE();
     void play();
 
-    void setSoundStatus(bool status) {soundOn = status;}
-    bool getSoundStatus() {return soundOn;}
+    void setSoundStatus(bool status) {soundStatus = status;}
+    void switchSoundStatus();
+    bool getSoundStatus() {return soundStatus;}
 protected:
     Mix_Chunk *aud;
-    bool soundOn = true;
+    bool soundStatus = true;
 };
 
 #endif // SOUND_H

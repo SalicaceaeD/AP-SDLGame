@@ -4,28 +4,30 @@ Entity levelMap;
 Ball golfBall;
 Hole hole;
 Block blocks;
-Button menuButton('m');
-void gamePlay(SDL_Renderer *renderer, SDL_Event &event){
+
+SoundEffect swing;
+
+void gamePlay(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event){
     golfBall.initTexture(renderer);
     hole.initTexture(renderer);
-    menuButton.initTexture(renderer);
-    menuButton.setPos(0, 0);
 
-    LevelScreen::init(renderer);
     int opt = 0;
     bool playing = true;
     while (playing){
         if (opt < 0) playing = false;
         if (opt > 0){
-            char pressed = runGame(renderer, event, opt);
+            LevelScreen::destroy();
+            char pressed = runGame(window, renderer, event, opt);
             if (pressed == 'N') ++opt;
             else if (pressed != 'a') opt = 0;
         }
         if (opt == 0){
+            LevelScreen::init(renderer);
             while (SDL_PollEvent(&event)){
                 switch (event.type){
                     case SDL_QUIT:{
-                        playing = false;
+                        quitSDL(window, renderer);
+                        exit(0);
                         break;
                     }
                     case SDL_MOUSEBUTTONDOWN:{
@@ -41,34 +43,43 @@ void gamePlay(SDL_Renderer *renderer, SDL_Event &event){
     LevelScreen::destroy();
     golfBall.destroyTexture();
     hole.destroyTexture();
-    menuButton.destroyTexture();
 }
 
 bool gamerunning = true;
-char runGame(SDL_Renderer *renderer, SDL_Event &event, int level){
+int stroke = 0;
+char runGame(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event, int level){
+    swing.loadSE("assets/sfx/swing.mp3");
     loadLevel(renderer, level);
-    gamerunning = true;
-    while (gamerunning){
-        loadGame(renderer, event, level);
-    }
-    levelMap.destroyTexture();
-    return loadWinningScreen(renderer, event);
+    PlayingScreen::init(renderer);
 
+    gamerunning = true;
+    bool win = false;
+    while (gamerunning){
+        win = loadGame(window, renderer, event, level);
+    }
+
+    levelMap.destroyTexture();
+    PlayingScreen::destroy();
+    swing.freeSE();
+    if (win) return loadWinningScreen(window, renderer, event, level);
+    return 'b';
 }
 
 bool mouseDown = false;
-void loadGame(SDL_Renderer *renderer, SDL_Event &event, int level){
+bool loadGame(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event, int level){
     bool mousePressed = false;
     while (SDL_PollEvent(&event)){
         switch (event.type){
             case SDL_QUIT:{
-                gamerunning = false;
+                quitSDL(window, renderer);
+                exit(0);
                 break;
             }
             case SDL_MOUSEBUTTONDOWN:{
-                Vector2f curMousePos = getMouse();
-                if (menuButton.checkClick(curMousePos)){
-                    loadPauseScreen(renderer, event, level);
+                char pressed = PlayingScreen::handle();
+                if (pressed != 'n'){
+                    if (pressed == 'p') loadPauseScreen(window, renderer, event, level);
+                    if (pressed == 'a') loadLevel(renderer, level);
                 } else {
                     mouseDown = true;
                     mousePressed = true;
@@ -76,26 +87,32 @@ void loadGame(SDL_Renderer *renderer, SDL_Event &event, int level){
                 break;
             }
             case SDL_MOUSEBUTTONUP:{
+                if (golfBall.increaseStroke()){
+                    ++stroke;
+                    swing.play();
+                }
                 mouseDown = false;
                 break;
             }
         }
     }
-    bool win = golfBall.update(mousePressed, mouseDown, hole, blocks);
 
     SDL_RenderClear(renderer);
     levelMap.showTexture(renderer);
-    menuButton.showTexture(renderer);
     hole.showTexture(renderer);
+    PlayingScreen::display(renderer, level, stroke);
 
+    bool win = golfBall.update(renderer, mousePressed, mouseDown, hole, blocks);
     if (!win) golfBall.showTexture(renderer);
     SDL_RenderPresent(renderer);
     if (win){
         gamerunning = false;
     }
+    return win;
 }
 
 void loadLevel(SDL_Renderer *renderer, int level){
+    stroke = 0;
     int x = 0, y = 0;
     string path = "data/"+to_string(level)+"/data.txt";
     FILE* F = fopen(path.c_str(), "r");
@@ -119,7 +136,7 @@ void loadLevel(SDL_Renderer *renderer, int level){
     fclose(F);
 }
 
-void loadPauseScreen(SDL_Renderer *renderer, SDL_Event &event, int level){
+void loadPauseScreen(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event, int level){
     PauseScreen::init(renderer);
     PauseScreen::display(renderer);
 
@@ -128,7 +145,8 @@ void loadPauseScreen(SDL_Renderer *renderer, SDL_Event &event, int level){
         while (SDL_PollEvent(&event)){
             switch (event.type){
                 case SDL_QUIT:{
-                    pausing = false;
+                    quitSDL(window, renderer);
+                    exit(0);
                     break;
                 }
                 case SDL_MOUSEBUTTONDOWN:{
@@ -142,9 +160,20 @@ void loadPauseScreen(SDL_Renderer *renderer, SDL_Event &event, int level){
         }
     }
     PauseScreen::destroy();
+    PlayingScreen::setStartTime();
 }
 
-char loadWinningScreen(SDL_Renderer *renderer, SDL_Event &event){
+char loadWinningScreen(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event, int level){
+    if (stroke == 1){
+        Text hio("HOLE IN ONE !", 40, 0);
+        hio.setPos(200, 280);
+        hio.showTexture(renderer);
+        SDL_RenderPresent(renderer);
+        SDL_Delay(100);
+        hio.~Entity();
+    }
+
+    int _time = PlayingScreen::getTime();
     WinningScreen::init(renderer);
     WinningScreen::display(renderer);
 
@@ -154,7 +183,8 @@ char loadWinningScreen(SDL_Renderer *renderer, SDL_Event &event){
         while (SDL_PollEvent(&event)){
             switch (event.type){
                 case SDL_QUIT:{
-                    displaying = false;
+                    quitSDL(window, renderer);
+                    exit(0);
                     break;
                 }
                 case SDL_MOUSEBUTTONDOWN:{
@@ -166,5 +196,16 @@ char loadWinningScreen(SDL_Renderer *renderer, SDL_Event &event){
         }
     }
     WinningScreen::destroy();
+
+    string path = "data/"+to_string(level)+"/score.txt";
+    FILE *F = fopen(path.c_str(), "r");
+    int bestStroke = 0, bestTime = 0;
+    fscanf(F, "%d %d", &bestStroke, &bestTime);
+    fclose(F);
+
+    F = fopen(path.c_str(), "w");
+    if ((!bestStroke || !bestTime) || stroke < bestStroke || (stroke == bestStroke && _time < bestTime))
+        fprintf(F, "%d %d", stroke, _time);
+    fclose(F);
     return pressed;
 }

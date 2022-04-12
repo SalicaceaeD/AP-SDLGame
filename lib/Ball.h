@@ -15,15 +15,16 @@ public:
     void setVelocity(const Vector2f &curMousePos);
     void updatePos(Block &blocks);
     void init(const Vector2f &initPos);
-    bool update(bool mousePressed, bool mouseDown,
+    bool update(SDL_Renderer *renderer, bool mousePressed, bool mouseDown,
                 Hole &golfHole, Block &blocks);
+    bool increaseStroke();
 protected:
     Vector2f initialMousePos;
-    Vector2f initV;
+    Vector2f dir;
     float initVelocity = 1;
     float velocity = 0;
     vector<float> friction = {0.02, 0.01, 0.005};
-    float inertia = 0.001;
+    float inertia = 0.005;
 private:
     bool moving = false;
     bool win = false;
