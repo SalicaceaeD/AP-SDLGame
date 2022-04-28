@@ -3,13 +3,12 @@
 Entity levelMap;
 Ball golfBall;
 Hole hole;
-Block blocks;
-
-SoundEffect swing;
+Animation flag("assets/img/flag.png", 8);
 
 void gamePlay(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event){
-    golfBall.initTexture(renderer);
     hole.initTexture(renderer);
+    flag.initTexture(renderer);
+    flag.setSize(23, 46);
 
     int opt = 0;
     bool playing = true;
@@ -41,32 +40,74 @@ void gamePlay(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event){
     }
 
     LevelScreen::destroy();
-    golfBall.destroyTexture();
     hole.destroyTexture();
+    flag.destroyTexture();
 }
 
 bool gamerunning = true;
 int stroke = 0;
+int _time = 0;
+SoundEffect swing;
+SoundEffect inHole;
+SoundEffect inWater;
 char runGame(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event, int level){
     swing.loadSE("assets/sfx/swing.mp3");
+    inHole.loadSE("assets/sfx/hole.mp3");
+    inWater.loadSE("assets/sfx/water.mp3");
+
     loadLevel(renderer, level);
     PlayingScreen::init(renderer);
+    Pyramid::init(renderer);
+    Lock::init(renderer);
 
     gamerunning = true;
-    bool win = false;
+    char win = '0';
     while (gamerunning){
         win = loadGame(window, renderer, event, level);
     }
+    _time = PlayingScreen::getTime();
 
+    if (win == 'w') inHole.play();
+    if (win == 'l') inWater.play();
+    if (win != '0') for (int t=8; t; --t){
+        golfBall.resizeRect(-1);
+        levelMap.showTexture(renderer);
+        hole.showTexture(renderer);
+        if (win == 'w'){
+            Vector2f ballPos = golfBall.getPos();
+            Vector2f holePos = hole.getPos();
+            holePos = holePos + Vector2f(6, 6);
+            if (ballPos.x > holePos.x) golfBall.addX(-2);
+            if (ballPos.x < holePos.x) golfBall.addX(2);
+            if (ballPos.y > holePos.y) golfBall.addY(-2);
+            if (ballPos.y < holePos.y) golfBall.addY(2);
+        }
+        golfBall.showTexture(renderer);
+        SDL_RenderPresent(renderer);
+        SDL_Delay(50);
+    }
+    levelMap.showTexture(renderer);
+    hole.showTexture(renderer);
+    SDL_RenderPresent(renderer);
+    SDL_Delay(100);
+
+    golfBall.destroyTexture();
     levelMap.destroyTexture();
     PlayingScreen::destroy();
+    Pyramid::destroy();
+    Lock::destroy();
+
     swing.freeSE();
-    if (win) return loadWinningScreen(window, renderer, event, level);
+    inHole.freeSE();
+    inWater.freeSE();
+
+    if (win == 'w') return loadWinningScreen(window, renderer, event, level);
+    if (win == 'l') return loadGameOverScreen(window, renderer, event);
     return 'b';
 }
 
 bool mouseDown = false;
-bool loadGame(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event, int level){
+char loadGame(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event, int level){
     bool mousePressed = false;
     while (SDL_PollEvent(&event)){
         switch (event.type){
@@ -100,12 +141,14 @@ bool loadGame(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event, int 
     SDL_RenderClear(renderer);
     levelMap.showTexture(renderer);
     hole.showTexture(renderer);
+    if (!Lock::display(renderer)) flag.showTexture(renderer);
     PlayingScreen::display(renderer, level, stroke);
 
-    bool win = golfBall.update(renderer, mousePressed, mouseDown, hole, blocks);
-    if (!win) golfBall.showTexture(renderer);
+    char win = golfBall.update(renderer, mousePressed, mouseDown, hole);
+    if (win == '0') golfBall.showTexture(renderer);
+    Pyramid::display(renderer, golfBall.getPos());
     SDL_RenderPresent(renderer);
-    if (win){
+    if (win != '0'){
         gamerunning = false;
     }
     return win;
@@ -117,17 +160,52 @@ void loadLevel(SDL_Renderer *renderer, int level){
     string path = "data/"+to_string(level)+"/data.txt";
     FILE* F = fopen(path.c_str(), "r");
 
+    golfBall.initTexture(renderer);
     fscanf(F, "%d%d", &x, &y);
     golfBall.init({x, y});
 
     fscanf(F, "%d%d", &x, &y);
     hole.setPos(x, y);
+    flag.setPos(x+8, y-flag.getSize().y+8);
 
     int x2 = 0, y2 = 0;
-    blocks.reset();
-    while (fscanf(F, "%d", &x) != EOF){
-        fscanf(F, "%d%d%d", &y, &x2, &y2);
-        blocks.add({{x, y}, {x2, y2}});
+    char type;
+    blockReset();
+    while (fscanf(F, "%c", &type) != EOF){
+        if (type == 'p'){
+            fscanf(F, "%d%d", &x, &y);
+            Pyramid::add({x, y});
+        }
+        if (type == 'w'){
+            fscanf(F, "%d%d%d%d", &x, &y, &x2, &y2);
+            Water::add({{x, y}, {x2, y2}});
+        }
+        if (type == 'b'){
+            fscanf(F, "%d%d%d%d", &x, &y, &x2, &y2);
+            Block::add({{x, y}, {x2, y2}});
+        }
+        if (type == 'l'){
+            fscanf(F, "%d%d", &x, &y);
+            Lock::add({x, y});
+            for (int i=0; i<4; ++i){
+                fscanf(F, "%d%d%d%d", &x, &y, &x2, &y2);
+                Lock::add({{x, y}, {x2, y2}});
+            }
+        }
+        if (type == 'k'){
+            int cnt = 0;
+            fscanf(F, "%d", &cnt);
+            vector<pair<Vector2f,Vector2f>> tmp;
+            while (cnt--){
+                fscanf(F, "%d%d%d%d", &x, &y, &x2, &y2);
+                tmp.push_back({{x, y}, {x2, y2}});
+            }
+            Lock::add(tmp);
+        }
+        if (type == 't'){
+            fscanf(F, "%d%d%d%d", &x, &y, &x2, &y2);
+            Teleport::add({{x, y},{x2, y2}});
+        }
     }
 
     levelMap.path = "data/"+to_string(level)+"/map.png";
@@ -138,7 +216,6 @@ void loadLevel(SDL_Renderer *renderer, int level){
 
 void loadPauseScreen(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event, int level){
     PauseScreen::init(renderer);
-    PauseScreen::display(renderer);
 
     bool pausing = true;
     while (pausing){
@@ -152,30 +229,31 @@ void loadPauseScreen(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &even
                 case SDL_MOUSEBUTTONDOWN:{
                     char pressed = PauseScreen::handle();
                     if (pressed != 'n') pausing = false; ///none
-                    if (pressed == 'a') loadLevel(renderer, level); ///again
                     if (pressed == 'b') gamerunning = false; ///back
                     break;
                 }
             }
         }
+        PauseScreen::display(renderer);
     }
     PauseScreen::destroy();
     PlayingScreen::setStartTime();
 }
 
 char loadWinningScreen(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event, int level){
-    if (stroke == 1){
-        Text hio("HOLE IN ONE !", 40, 0);
-        hio.setPos(200, 280);
-        hio.showTexture(renderer);
-        SDL_RenderPresent(renderer);
-        SDL_Delay(100);
-        hio.~Entity();
+    string path = "data/"+to_string(level)+"/score.txt";
+    FILE *F = fopen(path.c_str(), "r");
+    int bestStroke = 0, bestTime = 0;
+    fscanf(F, "%d %d", &bestStroke, &bestTime);
+    fclose(F);
+
+    if ((!bestStroke || !bestTime) || (stroke < bestStroke) || (stroke == bestStroke && _time < bestTime)){
+        F = fopen(path.c_str(), "w");
+        fprintf(F, "%d %d", stroke, _time);
+        fclose(F);
     }
 
-    int _time = PlayingScreen::getTime();
-    WinningScreen::init(renderer);
-    WinningScreen::display(renderer);
+    WinningScreen::init(renderer, stroke, _time, bestStroke, bestTime);
 
     char pressed;
     bool displaying = true;
@@ -194,18 +272,34 @@ char loadWinningScreen(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &ev
                 }
             }
         }
+        WinningScreen::display(renderer);
     }
     WinningScreen::destroy();
+    return pressed;
+}
 
-    string path = "data/"+to_string(level)+"/score.txt";
-    FILE *F = fopen(path.c_str(), "r");
-    int bestStroke = 0, bestTime = 0;
-    fscanf(F, "%d %d", &bestStroke, &bestTime);
-    fclose(F);
+char loadGameOverScreen(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event){
+    GameOverScreen::init(renderer);
 
-    F = fopen(path.c_str(), "w");
-    if ((!bestStroke || !bestTime) || stroke < bestStroke || (stroke == bestStroke && _time < bestTime))
-        fprintf(F, "%d %d", stroke, _time);
-    fclose(F);
+    char pressed;
+    bool displaying = true;
+    while (displaying){
+        while (SDL_PollEvent(&event)){
+            switch (event.type){
+                case SDL_QUIT:{
+                    quitSDL(window, renderer);
+                    exit(0);
+                    break;
+                }
+                case SDL_MOUSEBUTTONDOWN:{
+                    pressed = GameOverScreen::handle();
+                    if (pressed != 'n') displaying = false; ///none
+                    break;
+                }
+            }
+        }
+        GameOverScreen::display(renderer);
+    }
+    GameOverScreen::destroy();
     return pressed;
 }

@@ -13,11 +13,15 @@ public:
 
     void setInitialMousePos(const Vector2f &curMousePos);
     void setVelocity(const Vector2f &curMousePos);
-    void updatePos(Block &blocks);
+    void updatePos();
     void init(const Vector2f &initPos);
-    bool update(SDL_Renderer *renderer, bool mousePressed, bool mouseDown,
-                Hole &golfHole, Block &blocks);
+    char update(SDL_Renderer *renderer, bool mousePressed, bool mouseDown,
+                Hole &golfHole);
     bool increaseStroke();
+
+    void addX(int val) {pos.x += val;}
+    void addY(int val) {pos.y += val;}
+    void resizeRect(int val) {rect.w += val; rect.h += val;}
 protected:
     Vector2f initialMousePos;
     Vector2f dir;
@@ -27,7 +31,7 @@ protected:
     float inertia = 0.005;
 private:
     bool moving = false;
-    bool win = false;
+    char win = '0';
 };
 
 #endif // BALL_H

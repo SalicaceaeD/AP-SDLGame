@@ -9,9 +9,11 @@ public:
     Text(){};
     Text(string _mes, int _sz, bool _isButton);
     bool mouseHovering = 0;
+    SDL_Color textColor = {58, 34, 79};
 
-    void setMes(string _mes) {mes = _mes;}
     void setText(string _mes, int _sz, bool _isButton);
+    void setMes(string _mes) {mes = _mes;}
+    void setColor(int color);
     //void initTexture(SDL_Renderer *renderer);
     void showTexture(SDL_Renderer *renderer);
 protected:

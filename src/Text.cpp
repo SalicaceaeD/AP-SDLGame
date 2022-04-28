@@ -1,8 +1,12 @@
 #include "Text.h"
 
 //TTF_Font* font = TTF_OpenFont("assets/font/font.ttf", 32);
-SDL_Color dark = {58, 34, 79};
-SDL_Color red = {232, 80, 42};
+vector<SDL_Color> color = {
+    {145, 145, 145},///faint
+    {232, 80, 42},  ///light
+    {58, 34, 79},   ///dark
+    {184, 180, 178} ///gray
+};
 
 Text::Text(string _mes, int _sz, bool _isButton){
     setText(_mes, _sz, _isButton);
@@ -14,11 +18,11 @@ void Text::showTexture(SDL_Renderer *renderer){
     texture = nullptr;
 
     if (isButton) mouseHovering = checkMouseHovering();
-    SDL_Color textColor = (mouseHovering ? red : dark);
+    SDL_Color curColor = (mouseHovering ? color[1] : textColor);
     TTF_Font* font = TTF_OpenFont("assets/font/font.ttf", sz);
     if (font == NULL)  printf("Failed to load lazy font! SDL_ttf Error: %s\n", TTF_GetError());
 
-    SDL_Surface* textSurface = TTF_RenderText_Solid(font, mes.c_str(), textColor);
+    SDL_Surface* textSurface = TTF_RenderText_Solid(font, mes.c_str(), curColor);
     if(textSurface == NULL)
         printf("Unable to render text surface! SDL_ttf Error: %s\n", TTF_GetError());
     else{
@@ -33,5 +37,7 @@ void Text::showTexture(SDL_Renderer *renderer){
     SDL_RenderCopy(renderer, texture, NULL, &rect);
 
     TTF_CloseFont(font);
-    //mouseHovering = false;
+}
+void Text::setColor(int i){
+    textColor = color[i];
 }

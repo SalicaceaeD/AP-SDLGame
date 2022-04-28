@@ -11,9 +11,9 @@ using namespace std;
 class Entity{
 public:
     Entity() {};
-    Entity(string _path) {path = _path;};
+    Entity(string _path) {path = _path;}
     ~Entity();
-    void setPos(float _x, float _y);
+    virtual void setPos(float _x, float _y);
     void setCenter(char type, float val);
     Vector2f getPos();
     Vector2f getSize();

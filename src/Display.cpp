@@ -196,71 +196,149 @@ namespace OptionScreen{
 }
 
 namespace PauseScreen{
-    Entity menu("assets/img/menu.png");
-    Button resumeButton(254, 194, 192, 64);
-    Button returnButton(254, 268, 192, 64);
-    Button resetButton(254, 342, 192, 64);
+    Entity menu("assets/img/pause-screen.png");
+    Text returnButton("RETURN", 25, 1);
+    Text resumeButton("RESUME", 25, 1);
 
     void init(SDL_Renderer *renderer){
+        SDL_Rect background = {0, 0, 700, 600};
+        SDL_RenderFillRect(renderer, &background);
+
         menu.initTexture(renderer);
-        menu.setCenter('a', -1);
+        menu.showTexture(renderer);
+        menu.destroyTexture();
+
+        Text ques("DO YOU WANT TO RETURN TO MENU?", 20, 0);
+        ques.setPos(140, 254);
+        ques.showTexture(renderer);
+        ques.~Entity();
+
+        returnButton.setPos(150, 305);
+        resumeButton.setPos(435, 305);
     }
     char handle(){
-        Vector2f curMousePos = getMouse();
         char pressed = 'n';
-        if (resumeButton.checkClick(curMousePos)) pressed = 'r';
-        if (returnButton.checkClick(curMousePos)) pressed = 'b';
-        if (resetButton.checkClick(curMousePos))  pressed = 'a';
+        if (resumeButton.checkMouseHovering()) pressed = 'r';
+        if (returnButton.checkMouseHovering()) pressed = 'b';
         if (pressed != 'n') buttonPressed.play();
         return pressed;
     }
     void display(SDL_Renderer *renderer){
-        SDL_Rect background = {0, 0, 700, 600};
-        SDL_RenderFillRect(renderer, &background);
+        returnButton.showTexture(renderer);
+        resumeButton.showTexture(renderer);
 
-        menu.showTexture(renderer);
         SDL_RenderPresent(renderer);
     }
     void destroy(){
-        menu.destroyTexture();
+        returnButton.destroyTexture();
+        resumeButton.destroyTexture();
     }
 }
 
 namespace WinningScreen{
-    Entity playAgainButton("assets/img/play-again-button.png");
-    Entity goBackButton("assets/img/go-back-button.png");
-    Entity nextButton("assets/img/next-button.png");
+    Entity winningScreen("assets/img/winning-screen.png");
+    Entity hio("assets/img/winning-screen-hio.png");
+    Entity nhs("assets/img/winning-screen-nhs.png");
+    Text nextButton("NEXT LEVEL", 15, 1);
+    Text backButton("BACK TO MENU", 15, 1);
+    Text repButton("TRY AGAIN", 15, 1);
 
-    void init(SDL_Renderer *renderer){
-        playAgainButton.initTexture(renderer);
-        goBackButton.initTexture(renderer);
-        nextButton.initTexture(renderer);
+    void init(SDL_Renderer *renderer, int stroke, int time, int bestStroke, int bestTime){
+        nextButton.setPos(298, 381);
+        backButton.setPos(286, 419);
+        repButton.setPos(301, 457);
 
-        playAgainButton.setCenter('a', -1);
-        goBackButton.setCenter('h', playAgainButton.getPos().x-74);
-        nextButton.setCenter('h', playAgainButton.getPos().x+74);
-    }
-    char handle(){
-        Vector2f curMousePos = getMouse();
-        if (playAgainButton.checkMouseHovering()) return 'a';
-        if (goBackButton.checkMouseHovering())    return 'b';
-        if (nextButton.checkMouseHovering())      return 'N';
-        return 'n';
-    }
-    void display(SDL_Renderer *renderer){
         SDL_Rect background = {0, 0, 700, 600};
         SDL_RenderFillRect(renderer, &background);
+        winningScreen.initTexture(renderer);
+        winningScreen.showTexture(renderer);
+        winningScreen.destroyTexture();
+        if (stroke == 1) { ///hole in one
+            hio.initTexture(renderer);
+            hio.showTexture(renderer);
+            hio.destroyTexture();
+        }
+        if ((!bestStroke || !bestTime) || (stroke < bestStroke) || (stroke == bestStroke && time < bestTime)){ ///new high score
+            nhs.initTexture(renderer);
+            nhs.showTexture(renderer);
+            nhs.destroyTexture();
+        }
 
-        playAgainButton.showTexture(renderer);
-        goBackButton.showTexture(renderer);
+        string Sec = to_string(time%60);
+        string Min = to_string(time/60);
+        Text Time((Min.size()<2?"0"+Min:Min) + ":" + (Sec.size()<2?"0"+Sec:Sec), 15, 0);
+        Time.setPos(301, 326);
+        Time.showTexture(renderer);
+
+        Sec = to_string(bestTime%60);
+        Min = to_string(bestTime/60);
+        Time.setMes((Min.size()<2?"0"+Min:Min) + ":" + (Sec.size()<2?"0"+Sec:Sec));
+        Time.setPos(433, 326);
+        Time.showTexture(renderer);
+        Time.~Entity();
+
+        Text Stroke(to_string(stroke), 15, 0);
+        Stroke.setPos(301, 293);
+        Stroke.showTexture(renderer);
+
+        Stroke.setMes(to_string(bestStroke));
+        Stroke.setPos(433, 293);
+        Stroke.showTexture(renderer);
+        Stroke.~Entity();
+    }
+    char handle(){
+        char pressed = 'n';
+        if (repButton.checkMouseHovering())  pressed = 'a';
+        if (backButton.checkMouseHovering()) pressed = 'b';
+        if (nextButton.checkMouseHovering()) pressed = 'N';
+        if (pressed != 'n') buttonPressed.play();
+        return pressed;
+    }
+    void display(SDL_Renderer *renderer){
         nextButton.showTexture(renderer);
+        backButton.showTexture(renderer);
+        repButton.showTexture(renderer);
 
         SDL_RenderPresent(renderer);
     }
     void destroy(){
-        playAgainButton.destroyTexture();
-        goBackButton.destroyTexture();
         nextButton.destroyTexture();
+        backButton.destroyTexture();
+        repButton.destroyTexture();
+    }
+}
+
+namespace GameOverScreen{
+    Entity GOScreen("assets/img/game-over-screen.png");
+    Text backButton("BACK TO MENU", 15, 1);
+    Text repButton("TRY AGAIN", 15, 1);
+
+    void init(SDL_Renderer *renderer){
+        backButton.setPos(286, 280);
+        repButton.setPos(301, 318);
+
+        SDL_Rect background = {0, 0, 700, 600};
+        SDL_RenderFillRect(renderer, &background);
+        GOScreen.initTexture(renderer);
+        GOScreen.showTexture(renderer);
+        GOScreen.destroyTexture();
+    }
+    char handle(){
+        char pressed = 'n';
+        if (repButton.checkMouseHovering())  pressed = 'a';
+        if (backButton.checkMouseHovering()) pressed = 'b';
+        if (pressed != 'n') buttonPressed.play();
+        return pressed;
+    }
+    void display(SDL_Renderer *renderer){
+        backButton.showTexture(renderer);
+        repButton.showTexture(renderer);
+
+        SDL_RenderPresent(renderer);
+    }
+    void destroy(){
+        backButton.destroyTexture();
+        repButton.destroyTexture();
     }
 }
 
@@ -270,7 +348,6 @@ namespace LevelScreen{
                                     {113,347},{239,347},{365,347},{491,347},
                                     {113,473},{239,473},{365,473},{491,473}};
     Text levelFrame("f", 96, 1);
-    Entity levelButton("assets/img/level-frame.png");
     Entity goBackButton("assets/img/go-back-button.png");
     Entity goNextButton("assets/img/go-next-button.png");
     Entity xButton("assets/img/x-button.png");
@@ -278,8 +355,8 @@ namespace LevelScreen{
     int bgPos = 0;
     int page = 0;
     const int maxPage = 3;
+
     void init(SDL_Renderer *renderer){
-        levelButton.initTexture(renderer);
         goBackButton.initTexture(renderer);
         goNextButton.initTexture(renderer);
         xButton.initTexture(renderer);
@@ -289,27 +366,47 @@ namespace LevelScreen{
         goNextButton.setPos(617,300);
         xButton.setPos(636, 0);
     }
+    //Entity levelButton[2];
     void transition(SDL_Renderer *renderer, int sign){
         buttonPressed.play();
-        auto Cur = lpos;
-        auto New = lpos;
+        /*
+        levelButton[0].path = "assets/img/level-button-faint.png";
+        levelButton[1].path = "assets/img/level-button-dark.png";
+        levelButton[0].initTexture(renderer);
+        levelButton[1].initTexture(renderer);
+
+        vector<int> won(lpos.size()*2, 0);
+        FILE* F;
+        for (int id=0; id<=1; ++id) for (int i=0; i<lpos.size(); ++i) {
+            string path = "data/"+to_string((page+sign*id)*16+i+1)+"/score.txt";
+            F = fopen(path.c_str(), "r");
+            if (F != nullptr) fscanf(F, "%d", &won[id*lpos.size()+i]);
+            fclose(F);
+        }
+        delete F;
+        for (auto &x : won) x = (x ? 1 : 0);
+
+        vector<Vector2f> Pos[2];
+        Pos[0] = Pos[1] = lpos;
         int SCREEN_WIDTH = 700;
-        for (auto &p : New) p.x += sign*SCREEN_WIDTH;
-        for (int delta = 25; SCREEN_WIDTH > 0; SCREEN_WIDTH -= delta) {
+        for (auto &p : Pos[1]) p.x += sign*SCREEN_WIDTH;
+        for (int delta = 25; SCREEN_WIDTH > 0; SCREEN_WIDTH -= delta){
             SDL_RenderClear(renderer);
             background.showTexture(renderer);
-            for (auto &p : Cur){
-                p.x = p.x - sign*delta;
-                levelButton.setPos(p.x, p.y);
-                levelButton.showTexture(renderer);
-            }
-            for (auto &p : New) {
-                p.x = p.x - sign*delta;
-                levelButton.setPos(p.x, p.y);
-                levelButton.showTexture(renderer);
-            }
+            for (int id=0; id<=1; ++id)
+                for (int i=0; i<lpos.size(); ++i){
+                    auto p = &Pos[id][i];
+                    p->x = p->x - sign*delta;
+                    int j = won[id*lpos.size()+i];
+                    levelButton[j].setPos(p->x, p->y);
+                    levelButton[j].showTexture(renderer);
+                }
             SDL_RenderPresent(renderer);
         }
+
+        levelButton[0].destroyTexture();
+        levelButton[1].destroyTexture();
+        */
         page += sign;
     }
     int handle(SDL_Renderer *renderer){
@@ -336,18 +433,28 @@ namespace LevelScreen{
         xButton.showTexture(renderer);
 
         Text Level("0", 40, 0);
+        FILE* F;
         for (int i=0; i<lpos.size(); ++i){
+            int won = 0;
+            string path = "data/"+to_string(page*16+i+1)+"/score.txt";
+            F = fopen(path.c_str(), "r");
+            if (F != nullptr) fscanf(F, "%d", &won);
+            fclose(F);
+
             levelFrame.setPos(lpos[i].x, lpos[i].y);
+            levelFrame.setColor(won!=0 ? 2 : 0);
             levelFrame.showTexture(renderer);
 
             string level = to_string(page*16+i+1);
             float x = lpos[i].x + (96-level.size()*32+6)/2;
             float y = lpos[i].y + (96-40)/2;
-            Level.mouseHovering = levelFrame.checkMouseHovering();
+            Level.textColor = levelFrame.textColor;
+            Level.mouseHovering = levelFrame.mouseHovering;
             Level.setMes(level);
             Level.setPos(x, y);
             Level.showTexture(renderer);
         }
+        delete F;
         Level.~Entity();
         if (page > 0) goBackButton.showTexture(renderer);
         if (page < maxPage) goNextButton.showTexture(renderer);
@@ -356,7 +463,6 @@ namespace LevelScreen{
     }
     void destroy(){
         xButton.destroyTexture();
-        levelButton.destroyTexture();
         goBackButton.destroyTexture();
         goNextButton.destroyTexture();
         background.destroyTexture();

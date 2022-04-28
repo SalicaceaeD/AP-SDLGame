@@ -36,6 +36,7 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="lib/Animation.h" />
 		<Unit filename="lib/Ball.h" />
 		<Unit filename="lib/Block.h" />
 		<Unit filename="lib/Display.h" />
@@ -47,6 +48,7 @@
 		<Unit filename="lib/Text.h" />
 		<Unit filename="lib/Tool.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="src/Animation.cpp" />
 		<Unit filename="src/Ball.cpp" />
 		<Unit filename="src/Block.cpp" />
 		<Unit filename="src/Display.cpp" />

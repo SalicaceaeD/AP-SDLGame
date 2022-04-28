@@ -1,7 +1,10 @@
 #include "Ball.h"
 
+Entity charge("assets/img/charge.png");
+Entity initMousePos("assets/img/init-mouse-pos.png");
 void Ball::setInitialMousePos(const Vector2f &curMousePos){
     initialMousePos = curMousePos;
+    initMousePos.setPos(initialMousePos.x-12, initialMousePos.y-12);
 }
 
 void Ball::setVelocity(const Vector2f &curMousePos){
@@ -11,7 +14,9 @@ void Ball::setVelocity(const Vector2f &curMousePos){
     dir = initialMousePos - curMousePos;
 }
 
-void Ball::updatePos(Block &blocks){
+bool inPyr = 0;
+Vector2f prevPos;
+void Ball::updatePos(){
     //cout << velocity << "\n";
     if (velocity <= 0){
         moving = false;
@@ -21,10 +26,15 @@ void Ball::updatePos(Block &blocks){
     float deltaX = (velocity/initVelocity)*dir.x;
     float deltaY = (velocity/initVelocity)*dir.y;
 
-    if (blocks.checkCollision({pos.x+deltaX, pos.y})) dir.x *= -1, deltaX *= -1;
-    if (blocks.checkCollision({pos.x, pos.y+deltaY})) dir.y *= -1, deltaY *= -1;
+    if (Block::checkCollision({pos.x+deltaX, pos.y}) ||
+        Lock::checkCollision({pos.x+deltaX, pos.y})) dir.x *= -1, deltaX *= -1;
+    if (Block::checkCollision({pos.x, pos.y+deltaY}) ||
+        Lock::checkCollision({pos.x, pos.y+deltaY})) dir.y *= -1, deltaY *= -1;
+    prevPos = pos;
     pos.x += deltaX;
     pos.y += deltaY;
+
+    inPyr = Pyramid::checkPyr(pos, dir, inPyr);
 
     for (auto a : friction) if (velocity > a*10){
         velocity -= a;
@@ -33,21 +43,32 @@ void Ball::updatePos(Block &blocks){
     velocity -= inertia;
 }
 
-Entity charge("assets/img/charge.png");
-bool Ball::update(SDL_Renderer *renderer, bool mousePressed, bool mouseDown,
-                  Hole &golfHole, Block &blocks){
-    if (win){
-        return true;
+char Ball::update(SDL_Renderer *renderer, bool mousePressed, bool mouseDown,
+                  Hole &golfHole){
+    if (win != '0'){
+        return win;
     }
     if (golfHole.checkWin(pos)){
-        win = true;
+        win = 'w';
     }
-    Vector2f curMousePos = getMouse();
+    if (Water::checkWater(prevPos, pos)){
+        win = 'l';
+    }
+    if (Teleport::checkBallInPort(pos)){
+        int t = 3;
+        while (t--) updatePos();
+    }
+    Lock::checkKey(pos);
 
+    Vector2f curMousePos = getMouse();
     if (mousePressed && !moving){
         setInitialMousePos(curMousePos);
     }
     if (mouseDown && !moving){
+        initMousePos.initTexture(renderer);
+        initMousePos.showTexture(renderer);
+        initMousePos.destroyTexture();
+
         setVelocity(curMousePos);
         if (velocity > 0){
             //SDL_RenderDrawLine(renderer, pos.x+8, pos.y+8, pos.x+8+initV.x, pos.y+8+initV.y);
@@ -62,18 +83,19 @@ bool Ball::update(SDL_Renderer *renderer, bool mousePressed, bool mouseDown,
             charge.destroyTexture();
         }
     } else {
-        updatePos(blocks);
+        updatePos();
     }
-    return false;
+    return '0';
 }
 
 void Ball::init(const Vector2f &initPos){
     setPos(initPos.x, initPos.y);
     velocity = 0;
     initVelocity = 1;
-    dir = Vector2f(0, 0);
+    dir = Vector2f(0,0);
+    prevPos = Vector2f(0,0);
     moving = false;
-    win = false;
+    win = '0';
 }
 
 bool Ball::increaseStroke(){

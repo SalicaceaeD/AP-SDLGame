@@ -39,6 +39,13 @@ namespace PauseScreen{
 }
 
 namespace WinningScreen{
+    void init(SDL_Renderer *renderer, int stroke, int time, int bestStroke, int bestTime);
+    char handle();
+    void display(SDL_Renderer *renderer);
+    void destroy();
+}
+
+namespace GameOverScreen{
     void init(SDL_Renderer *renderer);
     char handle();
     void display(SDL_Renderer *renderer);
