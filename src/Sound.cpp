@@ -29,17 +29,31 @@ void SoundEffect::switchSoundStatus(){
 }
 
 
-
-
-void Music::loadMusic(){
-    aud = Mix_LoadMUS(path.c_str());
+void Music::loadMusic(const char* path){
+    aud = Mix_LoadMUS(path);
     if (aud == NULL)
         cout << "Fail to load music! SDL_mixer error: " << Mix_GetError() << "\n";
+
+    int tmp;
+    FILE* F = fopen("assets/sfx/bgm.txt", "r");
+    fscanf(F, "%d", &tmp);
+    fclose(F);
+    playing = tmp;
 }
 void Music::freeMusic(){
     Mix_FreeMusic(aud);
 }
 void Music::play(){
-    Mix_PlayMusic(aud, -1);
+    if (playing)
+        Mix_PlayMusic(aud, -1);
+}
+void Music::switchSoundStatus(){
+    playing ^= 1;
+    FILE* F = fopen("assets/sfx/bgm.txt", "w");
+    fprintf(F, "%d", playing);
+    fclose(F);
+
+    if (!playing) Mix_PauseMusic();
+    else Mix_ResumeMusic();
 }
 

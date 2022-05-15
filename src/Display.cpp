@@ -1,18 +1,22 @@
 #include "Display.h"
 
 SoundEffect buttonPressed;
+Music bgm;
 
 void initSound(){
     buttonPressed.loadSE("assets/sfx/button.mp3");
+    bgm.loadMusic("assets/sfx/bgm.mp3");
+    bgm.play();
 }
 void quitSound(){
     buttonPressed.freeSE();
+    bgm.freeMusic();
 }
 
 namespace Background {
-    Entity background[2];
+    static Entity background[2];
     float bgPos[2];
-    Entity homeScreen("assets/img/homescreen.png");
+    static Entity homeScreen("assets/img/homescreen.png");
     //Animation flag(8, 26, 52, 600, 248);
     void init(SDL_Renderer *renderer){
         background[0].path = "assets/img/background-slow.png";
@@ -30,7 +34,7 @@ namespace Background {
         vector<float> spd = {0.4, 0.5};
         for (int i=0; i<=1; ++i){
             bgPos[i] -= spd[i];
-            if (bgPos[i] < -1050) bgPos[i] = 0;
+            if (bgPos[i] < -2100) bgPos[i] = 0;
             background[i].setPos(bgPos[i], 0);
             background[i].showTexture(renderer);
         }
@@ -81,23 +85,36 @@ namespace HomeScreen {
 
 namespace OptionScreen{
     static Text soundButton[2];
+    static Text bgmButton[2];
     static Text resetButton("RESET", 40, 1);
     static Text backButton("BACK", 40, 1);
     bool soundStatus = true;
+    bool playing = true;
 
     void init(){
         soundButton[0].setText("SOUND: OFF", 40, 1);
         soundButton[1].setText("SOUND: ON", 40, 1);
-        soundButton[0].setPos(50, 333);
-        soundButton[1].setPos(50, 333);
-        resetButton.setPos(50, 413);
-        backButton.setPos(50, 493);
+        soundButton[0].setPos(50, 328);
+        soundButton[1].setPos(50, 328);
+
+        bgmButton[0].setText("MUSIC: OFF", 40, 1);
+        bgmButton[1].setText("MUSIC: ON", 40, 1);
+        bgmButton[0].setPos(50, 396);
+        bgmButton[1].setPos(50, 396);
+
+        resetButton.setPos(50, 464);
+        backButton.setPos(50, 532);
 
         FILE *F = fopen("assets/sfx/data.txt", "r");
         int tmp;
         fscanf(F, "%d", &tmp);
         fclose(F);
         soundStatus = tmp;
+
+        F = fopen("assets/sfx/bgm.txt", "r");
+        fscanf(F, "%d", &tmp);
+        fclose(F);
+        playing = tmp;
     }
     char handle(){
         char pressed = 'n';
@@ -106,15 +123,30 @@ namespace OptionScreen{
             buttonPressed.switchSoundStatus();
             pressed = 's';
         }
+        if (bgmButton[playing].checkMouseHovering()){
+            playing ^= 1;
+            bgm.switchSoundStatus();
+            pressed = 'm';
+        }
         if (resetButton.checkMouseHovering())pressed = 'r';
         if (backButton.checkMouseHovering()) pressed = 'b';
         if (pressed != 'n') buttonPressed.play();
         return pressed;
     }
-    static Entity resetBg("assets/img/option-reset.png");
-    static Entity rsCpl("assets/img/option-reset-completed.png");
+    static Entity resetBg("assets/img/option-reset-bg.png");
     void resetPage(SDL_Window* window, SDL_Renderer *renderer, SDL_Event &event){
         resetBg.initTexture(renderer);
+        resetBg.showTexture(renderer);
+
+        Text mes("ALL YOUR PLAYING DATA WILL BE DELETED", 20, 0);
+        mes.setPos(87, 215);
+        mes.showTexture(renderer);
+
+        mes.setMes("ARE YOU SURE YOU WANT TO RESET GAME?");
+        mes.setPos(95, 258);
+        mes.showTexture(renderer);
+        mes.~Entity();
+
         Text yesButton("YES", 40, 1); //(147, 323, 170, 96);
         Text noButton("NO", 40, 1); //(386, 323, 170, 96);
         yesButton.setPos(160, 323);
@@ -149,28 +181,28 @@ namespace OptionScreen{
                                 fprintf(F, "%d %d", 0, 0);
                                 fclose(F);
                             }
-
+                            LevelScreen::resetData();
                         }
                         if (!displaying) buttonPressed.play();
                         break;
                     }
                 }
             }
-            SDL_RenderClear(renderer);
             if (!rs) {
-                resetBg.showTexture(renderer);
                 yesButton.showTexture(renderer);
                 noButton.showTexture(renderer);
             }
             else {
-                rsCpl.initTexture(renderer);
-                rsCpl.showTexture(renderer);
+                SDL_RenderClear(renderer);
+                resetBg.showTexture(renderer);
+
+                Text mes("RESET COMPLETED !", 40, 0);
+                mes.setPos(103, 281);
+                mes.showTexture(renderer);
+                mes.~Entity();
             }
             SDL_RenderPresent(renderer);
-            if (rs){
-                SDL_Delay(1000);
-                rsCpl.destroyTexture();
-            }
+            if (rs) SDL_Delay(1000);
 
         }
         resetBg.destroyTexture();
@@ -182,6 +214,7 @@ namespace OptionScreen{
 
         Background::display(renderer);
         soundButton[soundStatus].showTexture(renderer);
+        bgmButton[playing].showTexture(renderer);
         resetButton.showTexture(renderer);
         backButton.showTexture(renderer);
 
@@ -190,15 +223,19 @@ namespace OptionScreen{
     void destroy(){
         soundButton[0].destroyTexture();
         soundButton[1].destroyTexture();
+        bgmButton[0].destroyTexture();
+        bgmButton[1].destroyTexture();
         resetButton.destroyTexture();
         backButton.destroyTexture();
     }
 }
 
 namespace PauseScreen{
-    Entity menu("assets/img/pause-screen.png");
-    Text returnButton("RETURN", 25, 1);
-    Text resumeButton("RESUME", 25, 1);
+    static Entity menu("assets/img/pause-screen.png");
+    static Text returnButtonText("RETURN", 25, 0);
+    static Text resumeButtonText("RESUME", 25, 0);
+    Button returnButton(130, 293, 155, 48);
+    Button resumeButton(415, 293, 155, 48);
 
     void init(SDL_Renderer *renderer){
         SDL_Rect background = {0, 0, 700, 600};
@@ -213,40 +250,49 @@ namespace PauseScreen{
         ques.showTexture(renderer);
         ques.~Entity();
 
-        returnButton.setPos(150, 305);
-        resumeButton.setPos(435, 305);
+        returnButtonText.setPos(150, 305);
+        resumeButtonText.setPos(435, 305);
     }
     char handle(){
         char pressed = 'n';
-        if (resumeButton.checkMouseHovering()) pressed = 'r';
-        if (returnButton.checkMouseHovering()) pressed = 'b';
+        if (resumeButton.checkClick()) pressed = 'r';
+        if (returnButton.checkClick()) pressed = 'b';
         if (pressed != 'n') buttonPressed.play();
         return pressed;
     }
     void display(SDL_Renderer *renderer){
-        returnButton.showTexture(renderer);
-        resumeButton.showTexture(renderer);
+        returnButtonText.mouseHovering = returnButton.checkClick();
+        resumeButtonText.mouseHovering = resumeButton.checkClick();
+
+        returnButtonText.showTexture(renderer);
+        resumeButtonText.showTexture(renderer);
 
         SDL_RenderPresent(renderer);
     }
     void destroy(){
-        returnButton.destroyTexture();
-        resumeButton.destroyTexture();
+        returnButtonText.destroyTexture();
+        resumeButtonText.destroyTexture();
     }
 }
 
 namespace WinningScreen{
-    Entity winningScreen("assets/img/winning-screen.png");
-    Entity hio("assets/img/winning-screen-hio.png");
-    Entity nhs("assets/img/winning-screen-nhs.png");
-    Text nextButton("NEXT LEVEL", 15, 1);
-    Text backButton("BACK TO MENU", 15, 1);
-    Text repButton("TRY AGAIN", 15, 1);
+    static Entity winningScreen("assets/img/winning-screen.png");
+    static Entity hio("assets/img/winning-screen-hio.png");
+    static Entity nhs("assets/img/winning-screen-nhs.png");
+    static Text nextButtonText("NEXT LEVEL", 15, 0);
+    static Text backButtonText("BACK TO MENU", 15, 0);
+    static Text repButtonText("TRY AGAIN", 15, 0);
+    Button nextButton(251, 371, 196, 34);
+    Button backButton(252, 409, 196, 34);
+    Button repButton(252, 447, 196, 34);
+    int level = 0;
 
-    void init(SDL_Renderer *renderer, int stroke, int time, int bestStroke, int bestTime){
-        nextButton.setPos(298, 381);
-        backButton.setPos(286, 419);
-        repButton.setPos(301, 457);
+    void init(SDL_Renderer *renderer, int stroke, int time, int bestStroke, int bestTime, int _level){
+        level = _level;
+
+        nextButtonText.setPos(298, 381);
+        backButtonText.setPos(286, 419);
+        repButtonText.setPos(301, 457);
 
         SDL_Rect background = {0, 0, 700, 600};
         SDL_RenderFillRect(renderer, &background);
@@ -288,34 +334,42 @@ namespace WinningScreen{
     }
     char handle(){
         char pressed = 'n';
-        if (repButton.checkMouseHovering())  pressed = 'a';
-        if (backButton.checkMouseHovering()) pressed = 'b';
-        if (nextButton.checkMouseHovering()) pressed = 'N';
+        if (LevelScreen::haveNext(level))
+            if (nextButton.checkClick()) pressed = 'N';
+        if (backButton.checkClick()) pressed = 'b';
+        if (repButton.checkClick())  pressed = 'a';
         if (pressed != 'n') buttonPressed.play();
         return pressed;
     }
     void display(SDL_Renderer *renderer){
-        nextButton.showTexture(renderer);
-        backButton.showTexture(renderer);
-        repButton.showTexture(renderer);
+        if (LevelScreen::haveNext(level))
+            nextButtonText.mouseHovering = nextButton.checkClick();
+        backButtonText.mouseHovering = backButton.checkClick();
+        repButtonText.mouseHovering  = repButton.checkClick();
+
+        nextButtonText.showTexture(renderer);
+        backButtonText.showTexture(renderer);
+        repButtonText.showTexture(renderer);
 
         SDL_RenderPresent(renderer);
     }
     void destroy(){
-        nextButton.destroyTexture();
-        backButton.destroyTexture();
-        repButton.destroyTexture();
+        nextButtonText.destroyTexture();
+        backButtonText.destroyTexture();
+        repButtonText.destroyTexture();
     }
 }
 
 namespace GameOverScreen{
-    Entity GOScreen("assets/img/game-over-screen.png");
-    Text backButton("BACK TO MENU", 15, 1);
-    Text repButton("TRY AGAIN", 15, 1);
+    static Entity GOScreen("assets/img/game-over-screen.png");
+    static Text backButtonText("BACK TO MENU", 15, 0);
+    static Text repButtonText("TRY AGAIN", 15, 0);
+    Button backButton(252, 269, 196, 34);
+    Button repButton(252, 307, 196, 34);
 
     void init(SDL_Renderer *renderer){
-        backButton.setPos(286, 280);
-        repButton.setPos(301, 318);
+        backButtonText.setPos(286, 280);
+        repButtonText.setPos(301, 318);
 
         SDL_Rect background = {0, 0, 700, 600};
         SDL_RenderFillRect(renderer, &background);
@@ -325,20 +379,23 @@ namespace GameOverScreen{
     }
     char handle(){
         char pressed = 'n';
-        if (repButton.checkMouseHovering())  pressed = 'a';
-        if (backButton.checkMouseHovering()) pressed = 'b';
+        if (repButton.checkClick())  pressed = 'a';
+        if (backButton.checkClick()) pressed = 'b';
         if (pressed != 'n') buttonPressed.play();
         return pressed;
     }
     void display(SDL_Renderer *renderer){
-        backButton.showTexture(renderer);
-        repButton.showTexture(renderer);
+        backButtonText.mouseHovering = backButton.checkClick();
+        repButtonText.mouseHovering  = repButton.checkClick();
+
+        backButtonText.showTexture(renderer);
+        repButtonText.showTexture(renderer);
 
         SDL_RenderPresent(renderer);
     }
     void destroy(){
-        backButton.destroyTexture();
-        repButton.destroyTexture();
+        backButtonText.destroyTexture();
+        repButtonText.destroyTexture();
     }
 }
 
@@ -347,14 +404,14 @@ namespace LevelScreen{
                                     {113,221},{239,221},{365,221},{491,221},
                                     {113,347},{239,347},{365,347},{491,347},
                                     {113,473},{239,473},{365,473},{491,473}};
-    Text levelFrame("f", 96, 1);
-    Entity goBackButton("assets/img/go-back-button.png");
-    Entity goNextButton("assets/img/go-next-button.png");
-    Entity xButton("assets/img/x-button.png");
-    Entity background("assets/img/background.png");
-    int bgPos = 0;
+    static Text levelFrame("f", 96, 1);
+    static Entity goBackButton("assets/img/go-back-button.png");
+    static Entity goNextButton("assets/img/go-next-button.png");
+    static Entity xButton("assets/img/x-button.png");
+    static Entity background("assets/img/background.png");
+    static Text htpButton("HOW TO PLAY", 20, 1);
     int page = 0;
-    const int maxPage = 3;
+    const int maxPage = 1;
 
     void init(SDL_Renderer *renderer){
         goBackButton.initTexture(renderer);
@@ -365,8 +422,27 @@ namespace LevelScreen{
         goBackButton.setPos(19, 300);
         goNextButton.setPos(617,300);
         xButton.setPos(636, 0);
+
+        htpButton.setPos(16, 22);
+
+        loadData();
     }
     //Entity levelButton[2];
+    vector<int> won(16);
+    int nextLevel = 1;
+    void loadData(){
+        fill(won.begin(), won.end(), -1);
+        FILE* F;
+        for (int i=0; i<16; ++i){
+            string path = "data/"+to_string(page*16+i+1)+"/score.txt";
+            F = fopen(path.c_str(), "r");
+            if (F == nullptr) break;
+            fscanf(F, "%d", &won[i]);
+            fclose(F);
+            if (won[i] > 0) nextLevel = page*16+i+1+1;
+        }
+        delete F;
+    }
     void transition(SDL_Renderer *renderer, int sign){
         buttonPressed.play();
         /*
@@ -408,6 +484,7 @@ namespace LevelScreen{
         levelButton[1].destroyTexture();
         */
         page += sign;
+        loadData();
     }
     int handle(SDL_Renderer *renderer){
         Vector2f curMousePos = getMouse();
@@ -415,9 +492,14 @@ namespace LevelScreen{
             buttonPressed.play();
             return -1;
         }
-        for (int i=0; i<lpos.size(); ++i)
+        if (htpButton.checkMouseHovering()){
+            buttonPressed.play();
+            return -2;
+        }
+        for (int i=0; i<16; ++i)
             if (lpos[i].x <= curMousePos.x && curMousePos.x < lpos[i].x+96 &&
                 lpos[i].y <= curMousePos.y && curMousePos.y < lpos[i].y+96){
+                    if (won[i] < 0 || page*16+i+1 > nextLevel) return 0;
                     buttonPressed.play();
                     return page*16+i+1;
                 }
@@ -431,18 +513,14 @@ namespace LevelScreen{
 
         background.showTexture(renderer);
         xButton.showTexture(renderer);
+        htpButton.showTexture(renderer);
 
         Text Level("0", 40, 0);
-        FILE* F;
-        for (int i=0; i<lpos.size(); ++i){
-            int won = 0;
-            string path = "data/"+to_string(page*16+i+1)+"/score.txt";
-            F = fopen(path.c_str(), "r");
-            if (F != nullptr) fscanf(F, "%d", &won);
-            fclose(F);
-
+        for (int i=0; i<16; ++i){
+            if (won[i] < 0) break;
             levelFrame.setPos(lpos[i].x, lpos[i].y);
-            levelFrame.setColor(won!=0 ? 2 : 0);
+            levelFrame.setColor(won[i]!=0 ? 2 : 0);
+            if (page*16+i+1 == nextLevel) levelFrame.setColor(4);
             levelFrame.showTexture(renderer);
 
             string level = to_string(page*16+i+1);
@@ -454,7 +532,6 @@ namespace LevelScreen{
             Level.setPos(x, y);
             Level.showTexture(renderer);
         }
-        delete F;
         Level.~Entity();
         if (page > 0) goBackButton.showTexture(renderer);
         if (page < maxPage) goNextButton.showTexture(renderer);
@@ -468,12 +545,26 @@ namespace LevelScreen{
         background.destroyTexture();
 
         levelFrame.destroyTexture();
+        htpButton.destroyTexture();
+    }
+
+    bool haveNext(int level){
+        string path = "data/"+to_string(level+1)+"/score.txt";
+        FILE* F = fopen(path.c_str(), "r");
+        if (F == nullptr) return 0;
+        fclose(F);
+        delete F;
+        return true;
+    }
+    void resetData(){
+        page = 0;
+        nextLevel = 1;
     }
 }
 
 namespace PlayingScreen{
-    Entity pauseButton("assets/img/pause-button.png"); //(636, 0, 64);
-    Entity playAgainButton("assets/img/play-again-button.png"); //(572, 0, 64);
+    static Entity pauseButton("assets/img/pause-button.png"); //(636, 0, 64);
+    static Entity playAgainButton("assets/img/play-again-button.png"); //(572, 0, 64);
     Uint32 startTime = 0;
     int time = 0;
     //Entity background("assets/img/playscreen.png");
@@ -535,5 +626,49 @@ namespace PlayingScreen{
     }
     void setStartTime(){
         startTime = SDL_GetTicks();
+    }
+}
+
+namespace Instruction{
+    static Animation ins("assets/img/ins.png", 15);
+    static Text gi("GOT IT!", 20, 1);
+    static Text htp("DRAG AND DROP YOUR MOUSE CURSOR TO", 20, 0);
+    static Text htp2("INITIALIZE GOLF BALL'S VELOCITY AND DIRECTION", 20, 0);
+
+    void init(SDL_Renderer *renderer){
+        ins.reset();
+        ins.initTexture(renderer);
+        ins.setSize(300, 300);
+        ins.setPos(200, 200);
+
+        gi.setColor(0);
+        gi.setPos(300, 525);
+        htp.setColor(0);
+        htp.setPos(100, 100);
+        htp2.setColor(0);
+        htp2.setPos(30, 140);
+    }
+    char handle(){
+        if (gi.checkMouseHovering()){
+            buttonPressed.play();
+            return 'b';
+        }
+        return 'n';
+    }
+    void display(SDL_Renderer *renderer){
+        SDL_RenderClear(renderer);
+
+        ins.showTexture(renderer);
+        gi.showTexture(renderer);
+        htp.showTexture(renderer);
+        htp2.showTexture(renderer);
+
+        SDL_RenderPresent(renderer);
+    }
+    void destroy(){
+        ins.destroyTexture();
+        gi.destroyTexture();
+        htp.destroyTexture();
+        htp2.destroyTexture();
     }
 }

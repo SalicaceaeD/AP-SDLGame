@@ -35,7 +35,8 @@ public:
     Button(){};
     Button(int _x, int _y, int _sz)         { x = _x; y = _y; w = h = _sz; }
     Button(int _x, int _y, int _w, int _h)  { x = _x; y = _y; w = _w; h = _h; }
-    bool checkClick(Vector2f mousePos){
+    bool checkClick(){
+        Vector2f mousePos = getMouse();
         return  (x <= mousePos.x && mousePos.x < x+w) &&
                 (y <= mousePos.y && mousePos.y < y+h);
     }

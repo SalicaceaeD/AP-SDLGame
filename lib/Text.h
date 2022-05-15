@@ -14,6 +14,7 @@ public:
     void setText(string _mes, int _sz, bool _isButton);
     void setMes(string _mes) {mes = _mes;}
     void setColor(int color);
+    void setIsButton(bool _isButton) {isButton = _isButton;}
     //void initTexture(SDL_Renderer *renderer);
     void showTexture(SDL_Renderer *renderer);
 protected:

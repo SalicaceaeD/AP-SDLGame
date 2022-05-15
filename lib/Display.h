@@ -3,7 +3,7 @@
 
 #include "Entity.h"
 #include "Text.h"
-//#include "Animation.h"
+#include "Animation.h"
 #include "Sound.h"
 #include "SDL_utils.h"
 
@@ -39,7 +39,7 @@ namespace PauseScreen{
 }
 
 namespace WinningScreen{
-    void init(SDL_Renderer *renderer, int stroke, int time, int bestStroke, int bestTime);
+    void init(SDL_Renderer *renderer, int stroke, int time, int bestStroke, int bestTime, int _level);
     char handle();
     void display(SDL_Renderer *renderer);
     void destroy();
@@ -53,10 +53,14 @@ namespace GameOverScreen{
 }
 
 namespace LevelScreen{
+    void loadData();
     void init(SDL_Renderer *renderer);
     int handle(SDL_Renderer *renderer);
     void display(SDL_Renderer *renderer);
     void destroy();
+
+    bool haveNext(int level);
+    void resetData();
 }
 
 namespace PlayingScreen{
@@ -66,5 +70,12 @@ namespace PlayingScreen{
     void destroy();
     int getTime();
     void setStartTime();
+}
+
+namespace Instruction{
+    void init(SDL_Renderer *renderer);
+    char handle();
+    void display(SDL_Renderer *renderer);
+    void destroy();
 }
 #endif // DISPLAY_H

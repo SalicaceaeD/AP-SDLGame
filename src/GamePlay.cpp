@@ -13,7 +13,11 @@ void gamePlay(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event){
     int opt = 0;
     bool playing = true;
     while (playing){
-        if (opt < 0) playing = false;
+        if (opt == -1) playing = false;
+        if (opt == -2) {
+            loadInstruction(window, renderer, event);
+            opt = 0;
+        }
         if (opt > 0){
             LevelScreen::destroy();
             char pressed = runGame(window, renderer, event, opt);
@@ -253,7 +257,7 @@ char loadWinningScreen(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &ev
         fclose(F);
     }
 
-    WinningScreen::init(renderer, stroke, _time, bestStroke, bestTime);
+    WinningScreen::init(renderer, stroke, _time, bestStroke, bestTime, level);
 
     char pressed;
     bool displaying = true;
@@ -302,4 +306,28 @@ char loadGameOverScreen(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &e
     }
     GameOverScreen::destroy();
     return pressed;
+}
+
+void loadInstruction(SDL_Window *window, SDL_Renderer *renderer, SDL_Event &event){
+    Instruction::init(renderer);
+
+    bool displaying = true;
+    while (displaying){
+        while (SDL_PollEvent(&event)){
+            switch (event.type){
+                case SDL_QUIT:{
+                    quitSDL(window, renderer);
+                    exit(0);
+                    break;
+                }
+                case SDL_MOUSEBUTTONDOWN:{
+                    char pressed = Instruction::handle();
+                    if (pressed == 'b') displaying = false; ///none
+                    break;
+                }
+            }
+        }
+        Instruction::display(renderer);
+    }
+    Instruction::destroy();
 }

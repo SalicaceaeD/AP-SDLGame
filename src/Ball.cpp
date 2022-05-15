@@ -55,8 +55,8 @@ char Ball::update(SDL_Renderer *renderer, bool mousePressed, bool mouseDown,
         win = 'l';
     }
     if (Teleport::checkBallInPort(pos)){
-        int t = 3;
-        while (t--) updatePos();
+        pos.x += (8.0/initVelocity)*dir.x;
+        pos.y += (8.0/initVelocity)*dir.y;
     }
     Lock::checkKey(pos);
 

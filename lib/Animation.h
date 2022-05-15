@@ -13,6 +13,7 @@ public:
     void setSize(float _w, float _h);
     //void initTexture(SDL_Renderer *renderer);
     void showTexture(SDL_Renderer *renderer);
+    void reset() {frame = 0;}
 protected:
     int maxFrame = 0;
     int frame = 0;

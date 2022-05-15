@@ -5,7 +5,8 @@ vector<SDL_Color> color = {
     {145, 145, 145},///faint
     {232, 80, 42},  ///light
     {58, 34, 79},   ///dark
-    {184, 180, 178} ///gray
+    {184, 180, 178},///gray
+    {101, 52, 143}  ///
 };
 
 Text::Text(string _mes, int _sz, bool _isButton){

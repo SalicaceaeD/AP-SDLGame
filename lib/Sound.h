@@ -8,14 +8,13 @@ using namespace std;
 
 class Music {
 public:
-    void loadMusic();
+    void loadMusic(const char* path);
     void freeMusic();
     void play();
 
     void setPlayingStatus(bool status) {playing = status;}
+    void switchSoundStatus();
     bool getPlayingStatus() {return playing;}
-
-    string path;
 protected:
     Mix_Music *aud;
     bool playing = true;
