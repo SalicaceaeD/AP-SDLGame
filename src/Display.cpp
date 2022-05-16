@@ -54,9 +54,9 @@ namespace HomeScreen {
     static Text optionButton("OPTIONS", 40, 1);
 
     void init(){
-        playButton.setPos(50, 333);
-        quitButton.setPos(50, 493);
-        optionButton.setPos(50, 413);
+        playButton.setPos(288, 333);
+        quitButton.setPos(288, 493);
+        optionButton.setPos(241, 413);
     }
     char handle(){
         char pressed = 'n';
@@ -94,16 +94,16 @@ namespace OptionScreen{
     void init(){
         soundButton[0].setText("SOUND: OFF", 40, 1);
         soundButton[1].setText("SOUND: ON", 40, 1);
-        soundButton[0].setPos(50, 328);
-        soundButton[1].setPos(50, 328);
+        soundButton[0].setPos(208, 328);
+        soundButton[1].setPos(223, 328);
 
         bgmButton[0].setText("MUSIC: OFF", 40, 1);
         bgmButton[1].setText("MUSIC: ON", 40, 1);
-        bgmButton[0].setPos(50, 396);
-        bgmButton[1].setPos(50, 396);
+        bgmButton[0].setPos(208, 396);
+        bgmButton[1].setPos(223, 396);
 
-        resetButton.setPos(50, 464);
-        backButton.setPos(50, 532);
+        resetButton.setPos(272, 464);
+        backButton.setPos(288, 532);
 
         FILE *F = fopen("assets/sfx/data.txt", "r");
         int tmp;
@@ -126,6 +126,7 @@ namespace OptionScreen{
         if (bgmButton[playing].checkMouseHovering()){
             playing ^= 1;
             bgm.switchSoundStatus();
+            bgm.play();
             pressed = 'm';
         }
         if (resetButton.checkMouseHovering())pressed = 'r';
@@ -133,6 +134,25 @@ namespace OptionScreen{
         if (pressed != 'n') buttonPressed.play();
         return pressed;
     }
+        void display(SDL_Renderer *renderer){
+        SDL_RenderClear(renderer);
+
+        Background::display(renderer);
+        soundButton[soundStatus].showTexture(renderer);
+        bgmButton[playing].showTexture(renderer);
+        resetButton.showTexture(renderer);
+        backButton.showTexture(renderer);
+
+        SDL_RenderPresent(renderer);
+    }
+    void destroy(){
+        soundButton[0].destroyTexture();
+        soundButton[1].destroyTexture();
+        bgmButton[0].destroyTexture();
+        bgmButton[1].destroyTexture();
+        resetButton.destroyTexture();
+        backButton.destroyTexture();
+}
     static Entity resetBg("assets/img/option-reset-bg.png");
     void resetPage(SDL_Window* window, SDL_Renderer *renderer, SDL_Event &event){
         resetBg.initTexture(renderer);
@@ -174,6 +194,13 @@ namespace OptionScreen{
                             fprintf(F, "%d", 1);
                             fclose(F);
 
+                            playing = 1;
+                            bgm.setPlayingStatus(1);
+                            bgm.play();
+                            F = fopen("assets/sfx/bgm.txt", "w");
+                            fprintf(F, "%d", 1);
+                            fclose(F);
+
                             for (int i=1;; ++i){
                                 string path = "data/"+to_string(i)+"/score.txt";
                                 F = fopen(path.c_str(), "w");
@@ -208,25 +235,6 @@ namespace OptionScreen{
         resetBg.destroyTexture();
         yesButton.~Entity();
         noButton.~Entity();
-    }
-    void display(SDL_Renderer *renderer){
-        SDL_RenderClear(renderer);
-
-        Background::display(renderer);
-        soundButton[soundStatus].showTexture(renderer);
-        bgmButton[playing].showTexture(renderer);
-        resetButton.showTexture(renderer);
-        backButton.showTexture(renderer);
-
-        SDL_RenderPresent(renderer);
-    }
-    void destroy(){
-        soundButton[0].destroyTexture();
-        soundButton[1].destroyTexture();
-        bgmButton[0].destroyTexture();
-        bgmButton[1].destroyTexture();
-        resetButton.destroyTexture();
-        backButton.destroyTexture();
     }
 }
 
